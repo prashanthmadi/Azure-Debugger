@@ -16,5 +16,18 @@
     "diagnostics"
   ],
   "author": "Prashanth Madi",
-  "license": "ISC"
+  "license": "ISC",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/prashanthmadi/azure-debugger"
+  },
+  "main": "bin/azured",
+  "preferGlobal": true,
+  "bin": {
+    "azured": "./bin/azured"
+  },
+  "bugs": {
+    "url": "https://github.com/prashanthmadi/azure-debugger/issues"
+  },
+  "homepage": "https://github.com/prashanthmadi/azure-debugger"
 }

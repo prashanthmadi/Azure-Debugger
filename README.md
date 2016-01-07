@@ -12,4 +12,5 @@ Usage:
 - Below command would download xdebug based on php versoin and windows architecture in use. It will also create a userini file with xdebug and php logs enabled.
 
 > azured  //(or) 
+
 > azured .

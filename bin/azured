@@ -34,11 +34,15 @@ function main(){
 
 function downloadXdebug(php_version,php_arch,path){
 	mkdir(path, function(){
-		mkdir('extensions',function(){
+		mkdir(path+'/extensions',function(){
 			var file = fs.createWriteStream("extensions/xdebug.dll");
 			var request = http.get(xdebug_urls[php_version][php_arch], function(response) {
   				response.pipe(file);
 			});
+
+    mkdir(path+'/Logging');
+    mkdir(path+'/Logging/xdebug_profiles');
+
 		});
 	});
 }

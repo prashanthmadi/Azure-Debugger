@@ -7,8 +7,13 @@ var pkg = require('../package.json');
 var child_process = require('child_process');
 var http = require('http');
 var path = require('path');
+var readline = require('readline');
 
+var _exit = process.exit;
 
+// Re-assign process.exit because of commander
+// TODO: Switch to a different command framework
+process.exit = exit
 
 var version = pkg.version;
 var xdebug_urls = {
@@ -19,19 +24,40 @@ var xdebug_urls = {
 }
 
 program.version(version)
-	.option('-c,--cms <CMS>','CMS Type',/^(wordpress|drupal|magento)$/i,'wordpress')
+	.option('-c,--cms <CMS>','CMS Type',/^(wordpress|drupal|magento)$/i,'none')
+  .option('-t,--xdebug-trigger-on','Set xdebug Trigger')
 	.parse(process.argv);
 
 	// console.log(' CMS Type: %j', program.cms);
+
+main();
+
 
 function main(){
 	var php_version = child_process.execSync('php -r "echo phpversion();"',{ encoding: 'utf8' }).substring(0,3);
 	var php_arch = child_process.execSync('php -r "echo PHP_INT_SIZE;"',{ encoding: 'utf8' }) == 4 ? "x86" : "x64";
 	var destinationPath = program.args.shift() || '.';
-	downloadXdebug(php_version,php_arch,destinationPath);
-	addUserIni(destinationPath);
+
+if(existsSync(destinationPath+'/.user.ini')){
+  confirm('Your app already has a userini file. Do you want to overwrite? [y/N] ', function (ok) {
+        if (ok) {
+          process.stdin.destroy();
+          downloadXdebug(php_version,php_arch,destinationPath);
+          startDebug(destinationPath);
+        } else {
+          console.error('aborting');
+          exit(1);
+        }
+      });
+  }else{
+    downloadXdebug(php_version,php_arch,destinationPath);
+    startDebug(destinationPath);  
+ }
 }
 
+/**
+ * Download xdebug file based on PHP version and arch
+ */
 function downloadXdebug(php_version,php_arch,path){
 	mkdir(path, function(){
 		mkdir(path+'/extensions',function(){
@@ -47,29 +73,71 @@ function downloadXdebug(php_version,php_arch,path){
 	});
 }
 
-
-function addUserIni(path){
-	var useriniContent = loadTemplate('userini/default.txt');
+/**
+ * Add extra debugging based on type of CMS
+ * TODO : need to add more debugging based on CMS and move createUserIni call out of switch
+ */
+function startDebug(path){
 	switch (program.cms) {
         case 'wordpress':
-          write(path + '/.user.ini', useriniContent);
+          createUserIni(path);         
           break;
         case 'drupal':
-          write(path + '/.user.ini', useriniContent);
+          createUserIni(path);         
           break;
         case 'magento':
-          write(path + '/.user.ini', useriniContent);
+          createUserIni(path);         
           break;
         case 'yii':
-          write(path + '/.user.ini', useriniContent);
+          createUserIni(path);         
           break;
         default:
-          write(path + '/.user.ini', useriniContent);
+          createUserIni(path);         
       }
-
 }
 
-main();
+/**
+ * Creates User ini file based on xdebug trigger switch
+ */
+function createUserIni(path){
+  var useriniContent = loadTemplate('userini/default.txt');
+  if(program.xdebugTriggerOn){
+    useriniContent = loadTemplate('userini/with_xdebug_trigger.txt');
+    console.log("creating userini file with xdebug trigger");
+  }else{
+    useriniContent = loadTemplate('userini/without_xdebug_trigger.txt');
+    console.log("creating userini file without xdebug trigger");
+  }
+  write(path + '/.user.ini', useriniContent);
+}
+
+/**
+ * Prompt for confirmation on STDOUT/STDIN
+ */
+function confirm(msg, callback) {
+  var rl = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout
+  });
+
+  rl.question(msg, function (input) {
+    rl.close();
+    callback(/^y|yes|ok|true$/i.test(input));
+  });
+}
+
+/**
+ * Check if a file exist
+ */
+function existsSync(filePath){
+  try{
+    fs.statSync(filePath);
+  }catch(err){
+    if(err.code == 'ENOENT') return false;
+  }
+  return true;
+};
+
 
 /**
  * echo str > path.
@@ -104,4 +172,31 @@ function mkdir(path, fn) {
     console.log('   \033[36mcreate\033[0m : ' + path);
     fn && fn();
   });
+}
+
+
+/**
+ * Graceful exit for async STDIO
+ */
+
+function exit(code) {
+  // flush output for Node.js Windows pipe bug
+  // https://github.com/joyent/node/issues/6247 is just one bug example
+  // https://github.com/visionmedia/mocha/issues/333 has a good discussion
+  function done() {
+    if (!(draining--)) _exit(code);
+  }
+
+  var draining = 0;
+  var streams = [process.stdout, process.stderr];
+
+  exit.exited = true;
+
+  streams.forEach(function(stream){
+    // submit empty write request and wait for completion
+    draining += 1;
+    stream.write('', done);
+  });
+
+  done();
 }

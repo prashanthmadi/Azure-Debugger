@@ -1,6 +1,6 @@
 {
   "name": "azured",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "azure diagnostics tool",
   "main": "server.js",
   "dependencies": {

@@ -14,3 +14,11 @@ Usage:
 > azured  //(or) 
 
 > azured .
+
+- Below command would start xdebug with trigger
+
+> azured -t //(or)
+
+> azured -t .
+
+Note: If you use this option Xdebug profiling can be triggered with a query string (e.g. http://<yoursite>/<pagename>.php?XDEBUG_PROFILE=1) to profile an individual request instead of profiling your whole site which will affect your website’s performance.

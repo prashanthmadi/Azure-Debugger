@@ -1,4 +1,4 @@
-# azure-debugger
+# Azure Debugger
 Azure App Services Web App debugger
 
 This tool would help you debug applications on Azure Web Apps
